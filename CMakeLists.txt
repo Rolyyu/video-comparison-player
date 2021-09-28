@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(src)
 add_subdirectory(lib/ffmpeg)
-add_subdirectory(lib/sdl)
+add_subdirectory(lib/sdl2)
 
 add_executable(vcplayer ${SOURCES})
-target_link_libraries(vcplayer ffmpeg sdl)
+target_link_libraries(vcplayer ffmpeg sdl2)
