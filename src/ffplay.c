@@ -308,9 +308,6 @@ typedef struct VideoState {
     int left_mouse_bt_stat;    // stat of left mouse button: 0 - left mouse button up; 1 - left mouse button down
     int delay_frame_num;       // delay frame from start
 
-    uint8_t *bk_data[4];
-    int      linesize[4];
-
 #if CONFIG_AVFILTER
     int vfilter_idx;
     AVFilterContext *in_video_filter;   // the first filter in the video chain
@@ -995,6 +992,7 @@ static void video_image_display(VideoState *is, VideoState *aux_is)
     Frame *vp, *aux_vp = NULL;
     Frame *sp = NULL;
     SDL_Rect rect;
+    int i;
 
     vp = frame_queue_peek_last(&is->pictq);
     if(aux_is)
@@ -1031,73 +1029,44 @@ static void video_image_display(VideoState *is, VideoState *aux_is)
         }
     }
     
-//    if(aux_is)  // need to blend two frame
-//    {
-//        if(aux_is->vid_texture)
-//        {
-//            uint8_t *data[4], *aux_data[4];
-//            int linesize[4], aux_linesize[4];
-//
-//            SDL_LockYUVOverlay (vp->bmp);
-//            SDL_LockYUVOverlay (aux_vp->bmp);
-//
-//            if(is->paused && (is->last_vert_split_pos <= is->vert_split_pos || is->step)) // paused and move from left to right
-//            { // first restore original frame
-//                for(i = 0; i < vp->height; i++)
-//                    memcpy(vp->bmp->pixels[0] + i * vp->bmp->pitches[0], is->bk_data[0] + i * vp->width, vp->width);
-//                for(i = 0; i < vp->height / 2; i++)
-//                {
-//                    memcpy(vp->bmp->pixels[1] + i * vp->bmp->pitches[1], is->bk_data[1] + i * vp->width / 2, vp->width / 2);
-//                    memcpy(vp->bmp->pixels[2] + i * vp->bmp->pitches[2], is->bk_data[2] + i * vp->width / 2, vp->width / 2);
-//                }
-//            }
-//            data[0] = vp->bmp->pixels[0];
-//            data[1] = vp->bmp->pixels[2];
-//            data[2] = vp->bmp->pixels[1];
-//
-//            linesize[0] = vp->bmp->pitches[0];
-//            linesize[1] = vp->bmp->pitches[2];
-//            linesize[2] = vp->bmp->pitches[1];
-//
-//            aux_data[0] = aux_vp->bmp->pixels[0];
-//            aux_data[1] = aux_vp->bmp->pixels[2];
-//            aux_data[2] = aux_vp->bmp->pixels[1];
-//
-//            aux_linesize[0] = aux_vp->bmp->pitches[0];
-//            aux_linesize[1] = aux_vp->bmp->pitches[2];
-//            aux_linesize[2] = aux_vp->bmp->pitches[1];
-//
-//            for (i = 0; i < vp->height; i++)
-//            {
-//                memcpy(data[0] + i * linesize[0] + is->vert_split_pos, aux_data[0] + i * aux_linesize[0] + is->vert_split_pos, vp->width - is->vert_split_pos);
-//                *(uint16_t *)(data[0] + i * linesize[0] + (is->vert_split_pos / 2) * 2) = 255;
-//                *(uint16_t *)(data[0] + i * linesize[0] + (is->vert_split_pos / 2) * 2 + 1) = 255;
-//            }
-//            for (i = 0; i < vp->height / 2; i++)
-//            {
-//                memcpy(data[1] + i * linesize[1] + is->vert_split_pos / 2, aux_data[1] + i * aux_linesize[1] + is->vert_split_pos / 2, (vp->width - is->vert_split_pos) / 2);
-//                memcpy(data[2] + i * linesize[2] + is->vert_split_pos / 2, aux_data[2] + i * aux_linesize[2] + is->vert_split_pos / 2, (vp->width - is->vert_split_pos) / 2);
-//                *(data[1] + i * linesize[1] + is->vert_split_pos / 2) = 128;
-//                *(data[2] + i * linesize[2] + is->vert_split_pos / 2) = 128;
-//            }
-//
-//            //FILE* fp = fopen("D:\\debug.yuv", "ab");
-//            //fwrite(data[0], vp->width * vp->height, 1, fp);
-//            //fwrite(data[1], vp->width * vp->height / 4, 1, fp);
-//            //fwrite(data[2], vp->width * vp->height / 4, 1, fp);
-//            //fclose(fp);
-//
-//            SDL_UnlockYUVOverlay (vp->bmp);
-//            SDL_UnlockYUVOverlay (aux_vp->bmp);
-//
-//            if(!is->paused)
-//            {
-//                if(is->vert_split_pos + is->mov_speed > vp->width || is->vert_split_pos + is->mov_speed < 0)
-//                       is->mov_speed = -is->mov_speed;
-//                is->vert_split_pos += is->mov_speed;
-//            }
-//        }
-//    }
+    if(aux_is)  // need to blend two frame
+    {
+        if(aux_is->vid_texture)
+        {
+            for (i = 0; i < vp->height; i++)
+            {
+                memcpy(vp->frame->data[0] + i * vp->frame->linesize[0] + is->vert_split_pos,
+                       aux_vp->frame->data[0] + i * aux_vp->frame->linesize[0] + is->vert_split_pos,
+                       vp->width - is->vert_split_pos);
+                *(uint16_t *)(vp->frame->data[0] + i * vp->frame->linesize[0] + (is->vert_split_pos / 2) * 2) = 255;
+                *(uint16_t *)(vp->frame->data[0] + i * vp->frame->linesize[0] + (is->vert_split_pos / 2) * 2 + 1) = 255;
+            }
+            for (i = 0; i < vp->height / 2; i++)
+            {
+                memcpy(vp->frame->data[1] + i * vp->frame->linesize[1] + is->vert_split_pos / 2,
+                       aux_vp->frame->data[1] + i * aux_vp->frame->linesize[1] + is->vert_split_pos / 2,
+                       (vp->width - is->vert_split_pos) / 2);
+                memcpy(vp->frame->data[2] + i * vp->frame->linesize[2] + is->vert_split_pos / 2,
+                       aux_vp->frame->data[2] + i * aux_vp->frame->linesize[2] + is->vert_split_pos / 2,
+                       (vp->width - is->vert_split_pos) / 2);
+                *(vp->frame->data[1] + i * vp->frame->linesize[1] + is->vert_split_pos / 2) = 128;
+                *(vp->frame->data[2] + i * vp->frame->linesize[2] + is->vert_split_pos / 2) = 128;
+            }
+
+//            FILE* fp = fopen("out.yuv", "ab");
+//            fwrite(vp->frame->data[0], vp->width * vp->height, 1, fp);
+//            fwrite(vp->frame->data[1], vp->width * vp->height / 4, 1, fp);
+//            fwrite(vp->frame->data[2], vp->width * vp->height / 4, 1, fp);
+//            fclose(fp);
+
+            if(!is->paused)
+            {
+                if(is->vert_split_pos + is->mov_speed > vp->width || is->vert_split_pos + is->mov_speed < 0)
+                       is->mov_speed = -is->mov_speed;
+                is->vert_split_pos += is->mov_speed;
+            }
+        }
+    }
     
     if (is->subtitle_st) {
         if (frame_queue_nb_remaining(&is->subpq) > 0) {
@@ -1151,6 +1120,13 @@ static void video_image_display(VideoState *is, VideoState *aux_is)
             return;
         vp->uploaded = 1;
         vp->flip_v = vp->frame->linesize[0] < 0;
+    }
+    
+    if (!aux_vp->uploaded) {
+        if (upload_texture(&aux_is->vid_texture, aux_vp->frame, &aux_is->img_convert_ctx) < 0)
+            return;
+        aux_vp->uploaded = 1;
+        aux_vp->flip_v = aux_vp->frame->linesize[0] < 0;
     }
 
     set_sdl_yuv_conversion_mode(vp->frame);
@@ -1712,17 +1688,24 @@ static void video_refresh(void *opaque, void *aux_opaque, double *remaining_time
         *remaining_time = FFMIN(*remaining_time, is->last_vis_time + rdftspeed - time);
     }
 
-    if (is->video_st) {
+    if (is->video_st && (!aux_is || aux_is->video_st)) {
 retry:
-        if (frame_queue_nb_remaining(&is->pictq) == 0) {
+        if (frame_queue_nb_remaining(&is->pictq) == 0 || (aux_is && frame_queue_nb_remaining(&aux_is->pictq) == 0)) {
             // nothing to do, no picture to display in the queue
         } else {
             double last_duration, duration, delay;
+            double aux_duration = 0.0;
             Frame *vp, *lastvp;
+            Frame *auxvp = NULL, *auxlastvp = NULL;
 
             /* dequeue the picture */
             lastvp = frame_queue_peek_last(&is->pictq);
             vp = frame_queue_peek(&is->pictq);
+            if(aux_is)
+            {
+                auxlastvp = frame_queue_peek_last(&aux_is->pictq);
+                auxvp = frame_queue_peek(&aux_is->pictq);
+            }
 
             if (vp->serial != is->videoq.serial) {
                 frame_queue_next(&is->pictq);
@@ -1738,6 +1721,10 @@ retry:
             /* compute nominal last_duration */
             last_duration = vp_duration(is, lastvp, vp);
             delay = compute_target_delay(last_duration, is);
+            if(aux_is)
+            {
+                aux_duration = vp_duration(aux_is, auxlastvp, auxvp);
+            }
 
             time= av_gettime_relative()/1000000.0;
             if (time < is->frame_timer + delay) {
@@ -1800,9 +1787,52 @@ retry:
 
             frame_queue_next(&is->pictq);
             is->force_refresh = 1;
+            if(aux_is)
+            {
+                if(is->first_pts >= 0 && aux_is->first_pts >= 0) // stream contains pts
+                {
+                    double auxvp_rela_pts = auxvp->pts - aux_is->first_pts + aux_is->delay_frame_num * aux_duration;
+                    double vp_rela_pts = vp->pts - is->first_pts + is->delay_frame_num * last_duration;
+                    while(auxvp_rela_pts <= vp_rela_pts - aux_duration) // aux stream is slower than main stream
+                    {
+                        if (frame_queue_nb_remaining(&aux_is->pictq) > 1)
+                            frame_queue_next(&aux_is->pictq);
+                        auxvp = frame_queue_peek(&aux_is->pictq);
+                        auxvp_rela_pts = auxvp->pts - aux_is->first_pts + aux_is->delay_frame_num * aux_duration;
+                        av_usleep((int64_t)(0.001 * 1000000.0)); // sleep 1ms
+                        //av_log(NULL, AV_LOG_INFO, "aux stream is slower than main stream, diff = %f\n", auxvp_rela_pts - vp_rela_pts);
+                    }
+                    //av_log(NULL, AV_LOG_FATAL, "auxvp->pts %f auxvp_rela_pts %f  |  vp->pts %f, vp_rela_pts %f\n", auxvp->pts, auxvp_rela_pts, vp->pts, vp_rela_pts);
+                    if(auxvp_rela_pts < vp_rela_pts + aux_duration) // aux stream is sychronized with main stream
+                    {
+                        frame_queue_next(&aux_is->pictq);
+                        aux_is->force_refresh = 1;
+                    }
+                    if(auxvp_rela_pts > vp_rela_pts + 2) // if seek back, auxvp_pts would be greater than vp_pts, must empty frame queue of aux_is
+                        frame_queue_next(&aux_is->pictq);
+                }
+                else
+                {
+                    while(auxvp->dec_frame_num + aux_is->delay_frame_num < vp->dec_frame_num + is->delay_frame_num) // aux stream is slower than main stream
+                    {
+                        if (frame_queue_nb_remaining(&aux_is->pictq) > 1)
+                            frame_queue_next(&aux_is->pictq);
+                        auxvp = frame_queue_peek(&aux_is->pictq);
+                        av_usleep((int64_t)(0.001 * 1000000.0)); // sleep 1ms
+                    }
+                    //av_log(NULL, AV_LOG_FATAL, "auxvp->pts %f auxvp_rela_pts %f  |  vp->pts %f, vp_rela_pts %f\n", auxvp->pts, auxvp_rela_pts, vp->pts, vp_rela_pts);
+                    if(auxvp->dec_frame_num + aux_is->delay_frame_num < vp->dec_frame_num + is->delay_frame_num + 1) // aux stream is sychronized with main stream
+                    {
+                        frame_queue_next(&aux_is->pictq);
+                        aux_is->force_refresh = 1;
+                    }
+                }
+            }
 
             if (is->step && !is->paused)
                 stream_toggle_pause(is);
+            if (aux_is && aux_is->step && !aux_is->paused)
+                stream_toggle_pause(aux_is);
         }
 display:
         /* display picture */
@@ -2817,6 +2847,9 @@ static int stream_component_open(VideoState *is, int stream_index)
     case AVMEDIA_TYPE_VIDEO:
         is->video_stream = stream_index;
         is->video_st = ic->streams[stream_index];
+            
+        is->vert_split_pos = avctx->width / 2;
+        is->last_vert_split_pos = is->vert_split_pos;
 
         if ((ret = decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread)) < 0)
             goto fail;
@@ -3914,13 +3947,6 @@ int main(int argc, char **argv)
         for(int i = 0; i < argc; i++)
             if(strcmp(argv[i], "-m") == 0)
                 is->mov_speed = is->scaleto_width / 400;
-        
-        is->bk_data[0]  = av_malloc(is->scaleto_width * is->scaleto_height);
-        is->bk_data[1]  = av_malloc(is->scaleto_width * is->scaleto_height / 2);
-        is->bk_data[2]  = av_malloc(is->scaleto_width * is->scaleto_height / 2);
-        is2->bk_data[0] = av_malloc(is2->scaleto_width * is2->scaleto_height);
-        is2->bk_data[1] = av_malloc(is2->scaleto_width * is2->scaleto_height / 2);
-        is2->bk_data[2] = av_malloc(is2->scaleto_width * is2->scaleto_height / 2);
         
         if(is->viddec_width != is2->viddec_width || is->viddec_height != is2->viddec_height)
             av_log(NULL, AV_LOG_WARNING, "Resolution doesn't match between two input files, Scale to %d x %d\n", is->scaleto_width, is->scaleto_height);
