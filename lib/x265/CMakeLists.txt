@@ -4,10 +4,10 @@ project(x265)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(X265	REQUIRED IMPORTED_TARGET x265)
 
-add_library(x265 INTERFACE IMPORTED GLOBAL)
-target_include_directories(x265 INTERFACE
+add_library(${PROJECT_NAME} INTERFACE IMPORTED GLOBAL)
+target_include_directories(${PROJECT_NAME} INTERFACE
     ${X265_INCLUDE_DIRS}
 )
-target_link_options(x265 INTERFACE
+target_link_options(${PROJECT_NAME} INTERFACE
     ${X265_LDFLAGS}
 )

@@ -2,18 +2,18 @@ cmake_minimum_required(VERSION 3.14)
 project(ffmpeg)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(AVCODEC		REQUIRED IMPORTED_TARGET libavcodec)
+pkg_check_modules(AVCODEC			REQUIRED IMPORTED_TARGET libavcodec)
 pkg_check_modules(AVDEVICE		REQUIRED IMPORTED_TARGET libavdevice)
 pkg_check_modules(AVFILTER		REQUIRED IMPORTED_TARGET libavfilter)
 pkg_check_modules(AVFORMAT		REQUIRED IMPORTED_TARGET libavformat)
-pkg_check_modules(AVRESAMPLE    REQUIRED IMPORTED_TARGET libavresample)
-pkg_check_modules(AVUTIL		REQUIRED IMPORTED_TARGET libavutil)
+pkg_check_modules(AVRESAMPLE  REQUIRED IMPORTED_TARGET libavresample)
+pkg_check_modules(AVUTIL			REQUIRED IMPORTED_TARGET libavutil)
 pkg_check_modules(POSTPROC		REQUIRED IMPORTED_TARGET libpostproc)
 pkg_check_modules(SWRESAMPLE	REQUIRED IMPORTED_TARGET libswresample)
-pkg_check_modules(SWSCALE		REQUIRED IMPORTED_TARGET libswscale)
+pkg_check_modules(SWSCALE			REQUIRED IMPORTED_TARGET libswscale)
 
-add_library(ffmpeg INTERFACE IMPORTED GLOBAL)
-target_include_directories(ffmpeg INTERFACE
+add_library(${PROJECT_NAME} INTERFACE IMPORTED GLOBAL)
+target_include_directories(${PROJECT_NAME} INTERFACE
     ${AVCODEC_INCLUDE_DIRS}
     ${AVDEVICE_INCLUDE_DIRS}
     ${AVFILTER_INCLUDE_DIRS}
@@ -24,7 +24,7 @@ target_include_directories(ffmpeg INTERFACE
     ${SWRESAMPLE_INCLUDE_DIRS}
     ${SWSCALE_INCLUDE_DIRS}
 )
-target_link_options(ffmpeg INTERFACE
+target_link_options(${PROJECT_NAME} INTERFACE
     ${AVCODEC_LDFLAGS}
     ${AVDEVICE_LDFLAGS}
     ${AVFILTER_LDFLAGS}

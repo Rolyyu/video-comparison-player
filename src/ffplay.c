@@ -1727,7 +1727,7 @@ retry:
             }
 
             time= av_gettime_relative()/1000000.0;
-            if (is->first_pts >= 0 && time < is->frame_timer + delay) { // means current frame arrived too early, need to wait, return remaining_time to wait
+            if (time < is->frame_timer + delay) { // means current frame arrived too early, need to wait, return remaining_time to wait
                 //printf("frame arrived too early: time %f, is->frame_timer + delay %f, diff %f\n", time , is->frame_timer + delay, is->frame_timer + delay - time);
                 *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
                 goto display;
@@ -1747,7 +1747,7 @@ retry:
             if (frame_queue_nb_remaining(&is->pictq) > 1) {
                 Frame *nextvp = frame_queue_peek_next(&is->pictq);
                 duration = vp_duration(is, vp, nextvp);
-                if(is->first_pts >= 0 && !is->step && (framedrop>0 || (framedrop && get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                if(!is->step && (framedrop>0 || (framedrop && get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
                     is->frame_drops_late++;  // current frame is late, drop it
                     frame_queue_next(&is->pictq);
                     goto retry;
